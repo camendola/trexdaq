@@ -102,18 +102,21 @@ class HistCanvas(FigureCanvas):
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-        self.bins = np.linspace(0, 10, 11)
-        self.content = np.zeros(12, dtype=np.int)
+        n_bins = 2**8
+        self.bins = np.linspace(0, n_bins, n_bins+1)
+        self.content = np.zeros(n_bins+2, dtype=np.int)
 
         self.plot()
 
     def digitize(self, x):
-        self.content[np.digitize(x, self.bins, right=True)] += 1
+        for n in np.digitize(x, self.bins, right=True):
+            self.content[n] += 1
 
     def plot(self):
         data = [random.random() for i in range(250)]
         ax = self.figure.add_subplot(111)
-        ax.step(self.bins, np.concatenate([[0], self.content[1:-1]]))
+        # ax.step(self.bins, np.concatenate([[0], self.content[1:-1]]))
+        ax.fill_between(self.bins, np.concatenate([[0], self.content[1:-1]]), step="pre")
         # ax.set_title("Trexdaq Histogram")
         ax.set_ylabel("counts")
         ax.set_ylim(bottom=0.0)
@@ -124,14 +127,26 @@ class HistCanvas(FigureCanvas):
 # https://stackoverflow.com/questions/6783194/background-thread-with-qthread-in-pyqt
 class AquisitionThread(QThread):
 
-    sig = pyqtSignal(float)
+    sig = pyqtSignal(list)
+    refresh_rate = 1./60.
 
     def run(self):
-        # while True:
+        start_time = time.time()
+        data = []
         for line in sys.stdin:
-            # x = input("Get data:")
-            # print(x)
-            self.sig.emit(float(line))
+            line = line.strip().split(" ")
+            debug_amplitudes = float(line[0])
+            measurements = [int(s) for s in line[1:]]
+            amplitude = max(measurements) - min(measurements)
+            print(amplitude)
+            data.append(amplitude)
+            if time.time() - start_time > self.refresh_rate:
+                print("Emitting!")
+                print(data)
+                self.sig.emit(data)
+                data = []
+                start_time = time.time()
+        self.sig.emit(data)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
