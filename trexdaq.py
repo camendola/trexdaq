@@ -33,7 +33,7 @@ def digitize(y):
 pygame.init()
 
 # set up the window
-window_width = 500
+window_width = 512
 window_height = 400
 window_surface = pygame.display.set_mode((window_width, window_height), 0, 32)
 pygame.display.set_caption('Trex DAQ')
@@ -80,18 +80,22 @@ def draw_hist(bin_contents, logscale=False):
     if logscale:
         max_content = np.log(max_content)
 
-    w = 500
-    h = 400 - 20
+    w = window_width
+    h = window_height - 20
 
     y_scale = float(h)/max_content
     x_scale = w/float(n+1)
+    x_scale = 1
 
     points = [(0.,h)]
     for i, c in enumerate(bin_contents):
         if logscale:
             c = max(0, np.log(c))
-        points.append((x_scale*i, h - y_scale*c))
-        points.append((x_scale*(i+1), h - y_scale*c))
+        points.append((i, h))
+        points.append((i, h - y_scale*c))
+        points.append((i, h))
+        #points.append((x_scale*i, h - y_scale*c))
+        #points.append((x_scale*(i+1), h - y_scale*c))
     points.append((w,h))
 
     pygame.draw.polygon(window_surface, BLUE, points)
@@ -131,22 +135,30 @@ about_to_clear = False
 about_to_clear_time = 0
 
 # the value for saturation is 9.1640625
-# bins = np.linspace(0, 9.165, 2**11+1)
-bins = np.linspace(0, 2**8, 2**8+1)
+#bins = np.linspace(0, 9.165, 2**11+1)
+bins = np.linspace(0, 9.165, 2**8+1)
+#bins = np.linspace(0, 2**8, 2**8+1)
 
 acquisitor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
+quitting = False
+
 def acquire():
+    print("started acquisition")
     while True:
         if is_running:
+            #print(line)
             line = input().strip()
             line = line.split(" ")
             line = [float(x) for x in line[1:]]
             amp = np.max(line) - np.min(line)
+            #print(amp)
             amplitudes.append(amp)
             data.append(line)
         else:
             dump = input()
+        if quitting:
+            return
 
 acquisitor.submit(acquire)
 
@@ -173,6 +185,7 @@ while True:
     for event in pygame.event.get():
 
         if event.type == QUIT:
+            quitting = True
             pygame.quit()
             sys.exit()
 
@@ -204,6 +217,7 @@ while True:
                         logscale = not logscale
                         prompt_mode = False
                     elif prompt_text.strip() == ":q":
+                        quitting = True
                         pygame.quit()
                         sys.exit()
                     else:

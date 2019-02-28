@@ -1,8 +1,8 @@
-TARGETS = capture
+TARGETS = acquire
 
-CC = gcc
-CFLAGS = -Wall -g -ansi
-LDLIBS = -lBitLib
+CC = g++
+CFLAGS = -Wall --std=c++11
+LDLIBS = -lBitLib -lz -lcnpy
 
 all: $(TARGETS)
 
