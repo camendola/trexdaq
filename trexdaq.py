@@ -32,7 +32,7 @@ def digitize(y):
 # set up pygame
 pygame.init()
 
-# set up the window
+# set up the main window
 window_width = 512
 window_height = 400
 window_surface = pygame.display.set_mode((window_width, window_height), 0, 32)
@@ -48,10 +48,12 @@ GREEN = (0, 255, 0)
 # BLUE = (0, 0, 255)
 # BLUE = (73, 114, 189)
 BLUE = (220, 220, 204)
+DBLUE = (0,62,97)
+LBLUE = (51,101,129)
 
 # set up fonts
 monospace_font = pygame.font.SysFont("DejaVu Sans Mono", 14)
-
+smallText = pygame.font.SysFont("DejaVu Sans Mono",11)
 
 # draw the white background onto the surface
 window_surface.fill(WHITE)
@@ -74,14 +76,14 @@ pygame.draw.polygon(window_surface, GREEN, ((146, 0), (291, 106), (236, 277), (5
 
 def draw_hist(bin_contents, logscale=False):
     n = len(bin_contents)
-    max_content = max(max(bin_contents), 1)
+    max_content = max(max(bin_contents), 1) + 20 # +20 to prevent the top part of the histogram to be covered by the buttons
     max_content = 10**(int(np.log10(max_content))+1)
 
     if logscale:
         max_content = np.log(max_content)
 
     w = window_width
-    h = window_height - 20
+    h = window_height - 10
 
     y_scale = float(h)/max_content
     x_scale = w/float(n+1)
@@ -100,6 +102,88 @@ def draw_hist(bin_contents, logscale=False):
 
     pygame.draw.polygon(window_surface, BLUE, points)
 
+def text_objects(text, font, color):
+    textSurface = font.render(text, True, color)
+    return textSurface, textSurface.get_rect()
+
+# draw generic button with text: clear, save...
+def draw_button(xpos, action, condition, text):
+    mouse = pygame.mouse.get_pos()
+    click = pygame.mouse.get_pressed()
+    if condition: 
+        # the button changes color when the mouse passes over it and makes an action if it gets clicked
+        if xpos+30 > mouse[0] > xpos and 10+30 > mouse[1] > 10:
+            pygame.draw.rect(window_surface, BLUE,(xpos,10,30,30))
+            textSurf, textRect = text_objects(text, smallText, DBLUE)
+            if click[0] == 1 and action != None:
+                action() 
+        else:
+            pygame.draw.rect(window_surface, DBLUE,(xpos,10,30,30))
+            textSurf, textRect = text_objects(text, smallText, BLUE)
+    else:
+        # if not condition, the button is inactive
+        pygame.draw.rect(window_surface, LBLUE,(xpos,10,30,30))
+        textSurf, textRect = text_objects(text, smallText, BLUE)
+            
+    textRect.center = ( (xpos+(30/2)), (10+(30/2)) )
+    window_surface.blit(textSurf, textRect)
+
+# draw start button with triangle icon
+def draw_startbutton(xpos, action, condition):
+    mouse = pygame.mouse.get_pos()
+    click = pygame.mouse.get_pressed()
+    offset = 10
+    if condition: 
+        # the button changes color when the mouse passes over it and makes an action if it gets clicked
+        if xpos+30 > mouse[0] > xpos and 10+30 > mouse[1] > 10:
+            pygame.draw.rect(window_surface, BLUE,(xpos,10,30,30))
+            pygame.draw.polygon(window_surface, DBLUE, [[xpos+offset, 10+offset], [xpos+offset, 40-offset], [xpos+30-offset, 10+15]])
+            if click[0] == 1 and action != None:
+                action() 
+        else:
+            pygame.draw.rect(window_surface, DBLUE,(xpos,10,30,30))
+            pygame.draw.polygon(window_surface, BLUE, [[xpos+offset, 10+offset], [xpos+offset, 40-offset], [xpos+30-offset, 10+15]])
+
+    else:
+        # if not condition, the button is inactive
+        pygame.draw.rect(window_surface, LBLUE,(xpos,10,30,30))
+        pygame.draw.polygon(window_surface, BLUE, [[xpos+offset, 10+offset], [xpos+offset, 40-offset], [xpos+30-offset, 10+15]])
+
+# draw stop button with square icon
+def draw_stopbutton(xpos, action, condition):
+    mouse = pygame.mouse.get_pos()
+    click = pygame.mouse.get_pressed()
+    offset = 10
+    if condition: 
+        # the button changes color when the mouse passes over it and makes an action if it gets clicked
+        if xpos+30 > mouse[0] > xpos and 10+30 > mouse[1] > 10:
+            pygame.draw.rect(window_surface, BLUE,(xpos,10,30,30))
+            pygame.draw.rect(window_surface, DBLUE,(xpos+offset, 10+offset, 30 - offset*2, 30 -offset*2))
+            if click[0] == 1 and action != None:
+                action() 
+        else:
+            pygame.draw.rect(window_surface, DBLUE,(xpos,10,30,30))
+            pygame.draw.rect(window_surface, BLUE,(xpos+offset, 10+offset, 30 - offset*2, 30 -offset*2))
+
+    else:
+        # if not condition, the button is inactive
+        pygame.draw.rect(window_surface, LBLUE,(xpos,10,30,30))
+        pygame.draw.rect(window_surface, BLUE,(xpos+offset, 10+offset, 30 - offset*2, 30 -offset*2))
+        
+    
+
+# define actions
+def start_stop():
+    global is_running
+    is_running = not is_running
+
+def clear():
+    global about_to_clear, amplitudes, data, window_surface
+    about_to_clear = False
+    amplitudes = []
+    data = []
+    window_surface.fill(WHITE)
+    
 # draw some blue lines onto the surface
 pygame.draw.line(window_surface, BLUE, (60, 60), (120, 60), 4)
 pygame.draw.line(window_surface, BLUE, (120, 60), (60, 120))
@@ -174,9 +258,14 @@ while True:
 
     if is_running:
         window_surface.fill(WHITE)
-
         draw_hist(np.histogram(amplitudes, bins)[0], logscale=logscale)
 
+    # draw buttons
+
+    draw_startbutton(10, start_stop, not is_running)
+    draw_stopbutton(45, start_stop, is_running)
+    draw_button(80, clear, not is_running and not about_to_clear, "CLEAR")
+        
     # draw the window onto the screen
     if show_prompt:
         draw_prompt(prompt_text)
@@ -239,9 +328,8 @@ while True:
                     if show_prompt:
                         draw_prompt(prompt_text)
                     pygame.display.update()
-
                 if event.key == pygame.K_SPACE:
-                    is_running = not is_running
+                    start_stop()
 
                 if event.key == 59: # colon
                     if not prompt_mode:
@@ -263,3 +351,6 @@ while True:
                             pygame.display.update()
                         about_to_clear = True
                         about_to_clear_time = time.time()
+
+
+
