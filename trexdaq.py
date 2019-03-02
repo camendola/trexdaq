@@ -4,13 +4,10 @@ from pygame.locals import *
 import time
 import numpy as np
 import h5py
-
-'''Test the BitScope Library by connecting with the first available device
-and performing a capture and dump. Requires BitLib 2.0 and Python Bindings'''
-
 import matplotlib.pyplot as plt
-import numpy as np
 import concurrent.futures
+
+from buttons import draw_button
 
 np.random.seed(10)
 
@@ -53,7 +50,7 @@ LBLUE = (51,101,129)
 
 # set up fonts
 monospace_font = pygame.font.SysFont("DejaVu Sans Mono", 14)
-smallText = pygame.font.SysFont("DejaVu Sans Mono",11)
+small_text = pygame.font.SysFont("DejaVu Sans Mono",11)
 
 # draw the white background onto the surface
 window_surface.fill(WHITE)
@@ -62,14 +59,14 @@ def draw_prompt(text=": Hello World!"):
 
     # set up the text
     text = monospace_font.render(text, True, text_color, BLACK)
-    textRect = text.get_rect()
-    textRect.top = window_height - 18
-    textRect.left = 2
+    text_rect = text.get_rect()
+    text_rect.top = window_height - 18
+    text_rect.left = 2
 
     # draw the text's background rectangle onto the surface
-    pygame.draw.rect(window_surface, BLACK, (0, textRect.top - 2, window_width, textRect.height + 4))
+    pygame.draw.rect(window_surface, BLACK, (0, text_rect.top - 2, window_width, text_rect.height + 4))
     # draw the text onto the surface
-    window_surface.blit(text, textRect)
+    window_surface.blit(text, text_rect)
 
 # draw a green polygon onto the surface
 pygame.draw.polygon(window_surface, GREEN, ((146, 0), (291, 106), (236, 277), (56, 277), (0, 106)))
@@ -102,75 +99,14 @@ def draw_hist(bin_contents, logscale=False):
 
     pygame.draw.polygon(window_surface, BLUE, points)
 
-def text_objects(text, font, color):
-    textSurface = font.render(text, True, color)
-    return textSurface, textSurface.get_rect()
 
-# draw generic button with text: clear, save...
-def draw_button(xpos, action, condition, text):
-    mouse = pygame.mouse.get_pos()
-    click = pygame.mouse.get_pressed()
-    if condition: 
-        # the button changes color when the mouse passes over it and makes an action if it gets clicked
-        if xpos+30 > mouse[0] > xpos and 10+30 > mouse[1] > 10:
-            pygame.draw.rect(window_surface, BLUE,(xpos,10,30,30))
-            textSurf, textRect = text_objects(text, smallText, DBLUE)
-            if click[0] == 1 and action != None:
-                action() 
-        else:
-            pygame.draw.rect(window_surface, DBLUE,(xpos,10,30,30))
-            textSurf, textRect = text_objects(text, smallText, BLUE)
-    else:
-        # if not condition, the button is inactive
-        pygame.draw.rect(window_surface, LBLUE,(xpos,10,30,30))
-        textSurf, textRect = text_objects(text, smallText, BLUE)
-            
-    textRect.center = ( (xpos+(30/2)), (10+(30/2)) )
-    window_surface.blit(textSurf, textRect)
+button_colors = dict(
+        inactive = (LBLUE, BLUE),
+        active   = (DBLUE, BLUE),
+        hover    = (BLUE, DBLUE),
+        )
 
-# draw start button with triangle icon
-def draw_startbutton(xpos, action, condition):
-    mouse = pygame.mouse.get_pos()
-    click = pygame.mouse.get_pressed()
-    offset = 10
-    if condition: 
-        # the button changes color when the mouse passes over it and makes an action if it gets clicked
-        if xpos+30 > mouse[0] > xpos and 10+30 > mouse[1] > 10:
-            pygame.draw.rect(window_surface, BLUE,(xpos,10,30,30))
-            pygame.draw.polygon(window_surface, DBLUE, [[xpos+offset, 10+offset], [xpos+offset, 40-offset], [xpos+30-offset, 10+15]])
-            if click[0] == 1 and action != None:
-                action() 
-        else:
-            pygame.draw.rect(window_surface, DBLUE,(xpos,10,30,30))
-            pygame.draw.polygon(window_surface, BLUE, [[xpos+offset, 10+offset], [xpos+offset, 40-offset], [xpos+30-offset, 10+15]])
 
-    else:
-        # if not condition, the button is inactive
-        pygame.draw.rect(window_surface, LBLUE,(xpos,10,30,30))
-        pygame.draw.polygon(window_surface, BLUE, [[xpos+offset, 10+offset], [xpos+offset, 40-offset], [xpos+30-offset, 10+15]])
-
-# draw stop button with square icon
-def draw_stopbutton(xpos, action, condition):
-    mouse = pygame.mouse.get_pos()
-    click = pygame.mouse.get_pressed()
-    offset = 10
-    if condition: 
-        # the button changes color when the mouse passes over it and makes an action if it gets clicked
-        if xpos+30 > mouse[0] > xpos and 10+30 > mouse[1] > 10:
-            pygame.draw.rect(window_surface, BLUE,(xpos,10,30,30))
-            pygame.draw.rect(window_surface, DBLUE,(xpos+offset, 10+offset, 30 - offset*2, 30 -offset*2))
-            if click[0] == 1 and action != None:
-                action() 
-        else:
-            pygame.draw.rect(window_surface, DBLUE,(xpos,10,30,30))
-            pygame.draw.rect(window_surface, BLUE,(xpos+offset, 10+offset, 30 - offset*2, 30 -offset*2))
-
-    else:
-        # if not condition, the button is inactive
-        pygame.draw.rect(window_surface, LBLUE,(xpos,10,30,30))
-        pygame.draw.rect(window_surface, BLUE,(xpos+offset, 10+offset, 30 - offset*2, 30 -offset*2))
-        
-    
 
 # define actions
 def start_stop():
@@ -183,7 +119,7 @@ def clear():
     amplitudes = []
     data = []
     window_surface.fill(WHITE)
-    
+
 # draw some blue lines onto the surface
 pygame.draw.line(window_surface, BLUE, (60, 60), (120, 60), 4)
 pygame.draw.line(window_surface, BLUE, (120, 60), (60, 120))
@@ -262,10 +198,10 @@ while True:
 
     # draw buttons
 
-    draw_startbutton(10, start_stop, not is_running)
-    draw_stopbutton(45, start_stop, is_running)
-    draw_button(80, clear, not is_running and not about_to_clear, "CLEAR")
-        
+    draw_button(window_surface, [10, 10], start_stop, not is_running, [[0, 0], [0, 1], [1, 0.5]], colors=button_colors)
+    draw_button(window_surface, [45, 10], start_stop, is_running, [[0, 0], [0, 1], [1, 1], [1, 0]], colors=button_colors)
+    draw_button(window_surface, [80, 10], clear, not is_running and not about_to_clear, "CLEAR", colors=button_colors, font=small_text)
+
     # draw the window onto the screen
     if show_prompt:
         draw_prompt(prompt_text)

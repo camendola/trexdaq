@@ -25,4 +25,4 @@ while True:
     y = pulse_shape(t, a=a)
     y = digitize(y)/10
     print("{0:.4f} ".format(a) + " ".join(["{0}".format(yi) for yi in y]))
-    #time.sleep(1./rate)
+    time.sleep(1./rate)
