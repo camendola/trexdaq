@@ -14,17 +14,21 @@ np.random.seed(10)
 rate = 200
 
 # Define the pulse shape: a simple gaussian
-def pulse_shape(t, t0=5., a=12., sigma=1.):
-    return np.exp(-((t - t0)/(2.*sigma))**2) * a
+def pulse_shape(t, t0=5.0, a=12.0, sigma=1.0):
+    return np.exp(-((t - t0) / (2.0 * sigma)) ** 2) * a
+
 
 # Digitize to 8 bit plus saturation
-resolution = 2**8
-digitization_bins = np.linspace(0, 12, resolution+1)
+resolution = 2 ** 8
+digitization_bins = np.linspace(0, 12, resolution + 1)
 digitization_step = digitization_bins[1] - digitization_bins[0]
+
+
 def digitize(y):
     y = np.digitize(y, digitization_bins)
     y = np.clip(y, a_min=1, a_max=resolution)
     return y - 1
+
 
 # set up pygame
 pygame.init()
@@ -33,7 +37,7 @@ pygame.init()
 window_width = 512
 window_height = 400
 window_surface = pygame.display.set_mode((window_width, window_height), 0, 32)
-pygame.display.set_caption('Trex DAQ')
+pygame.display.set_caption("Trex DAQ")
 
 # set up the colors
 # WHITE = (220, 220, 204)
@@ -45,15 +49,16 @@ GREEN = (0, 255, 0)
 # BLUE = (0, 0, 255)
 # BLUE = (73, 114, 189)
 BLUE = (220, 220, 204)
-DBLUE = (0,62,97)
-LBLUE = (51,101,129)
+DBLUE = (0, 62, 97)
+LBLUE = (51, 101, 129)
 
 # set up fonts
 monospace_font = pygame.font.SysFont("DejaVu Sans Mono", 14)
-small_text = pygame.font.SysFont("DejaVu Sans Mono",11)
+small_text = pygame.font.SysFont("DejaVu Sans Mono", 11)
 
 # draw the white background onto the surface
 window_surface.fill(WHITE)
+
 
 def draw_prompt(text=": Hello World!"):
 
@@ -68,13 +73,17 @@ def draw_prompt(text=": Hello World!"):
     # draw the text onto the surface
     window_surface.blit(text, text_rect)
 
+
 # draw a green polygon onto the surface
 pygame.draw.polygon(window_surface, GREEN, ((146, 0), (291, 106), (236, 277), (56, 277), (0, 106)))
 
+
 def draw_hist(bin_contents, logscale=False):
     n = len(bin_contents)
-    max_content = max(max(bin_contents), 1) + 20 # +20 to prevent the top part of the histogram to be covered by the buttons
-    max_content = 10**(int(np.log10(max_content))+1)
+
+    # +20 to prevent the top part of the histogram to be covered by the buttons
+    max_content = max(max(bin_contents), 1) + 20
+    max_content = 10 ** (int(np.log10(max_content)) + 1)
 
     if logscale:
         max_content = np.log(max_content)
@@ -82,30 +91,25 @@ def draw_hist(bin_contents, logscale=False):
     w = window_width
     h = window_height - 10
 
-    y_scale = float(h)/max_content
-    x_scale = w/float(n+1)
+    y_scale = float(h) / max_content
+    x_scale = w / float(n + 1)
     x_scale = 1
 
-    points = [(0.,h)]
+    points = [(0.0, h)]
     for i, c in enumerate(bin_contents):
         if logscale:
             c = max(0, np.log(c))
         points.append((i, h))
-        points.append((i, h - y_scale*c))
+        points.append((i, h - y_scale * c))
         points.append((i, h))
-        #points.append((x_scale*i, h - y_scale*c))
-        #points.append((x_scale*(i+1), h - y_scale*c))
-    points.append((w,h))
+        # points.append((x_scale*i, h - y_scale*c))
+        # points.append((x_scale*(i+1), h - y_scale*c))
+    points.append((w, h))
 
     pygame.draw.polygon(window_surface, BLUE, points)
 
 
-button_colors = dict(
-        inactive = (LBLUE, BLUE),
-        active   = (DBLUE, BLUE),
-        hover    = (BLUE, DBLUE),
-        )
-
+button_colors = dict(inactive=(LBLUE, BLUE), active=(DBLUE, BLUE), hover=(BLUE, DBLUE))
 
 
 # define actions
@@ -113,12 +117,14 @@ def start_stop():
     global is_running
     is_running = not is_running
 
+
 def clear():
     global about_to_clear, amplitudes, data, window_surface
     about_to_clear = False
     amplitudes = []
     data = []
     window_surface.fill(WHITE)
+
 
 # draw some blue lines onto the surface
 pygame.draw.line(window_surface, BLUE, (60, 60), (120, 60), 4)
@@ -155,24 +161,25 @@ about_to_clear = False
 about_to_clear_time = 0
 
 # the value for saturation is 9.1640625
-#bins = np.linspace(0, 9.165, 2**11+1)
-bins = np.linspace(0, 9.165, 2**8+1)
-#bins = np.linspace(0, 2**8, 2**8+1)
+# bins = np.linspace(0, 9.165, 2**11+1)
+bins = np.linspace(0, 9.165, 2 ** 8 + 1)
+# bins = np.linspace(0, 2**8, 2**8+1)
 
 acquisitor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
 quitting = False
 
+
 def acquire():
     print("started acquisition")
     while True:
         if is_running:
-            #print(line)
+            # print(line)
             line = input().strip()
             line = line.split(" ")
             line = [float(x) for x in line[1:]]
             amp = np.max(line) - np.min(line)
-            #print(amp)
+            # print(amp)
             amplitudes.append(amp)
             data.append(line)
         else:
@@ -180,9 +187,10 @@ def acquire():
         if quitting:
             return
 
+
 acquisitor.submit(acquire)
 
-refresh_rate = 1./60
+refresh_rate = 1.0 / 60
 
 # run the game loop
 while True:
@@ -199,8 +207,18 @@ while True:
     # draw buttons
 
     draw_button(window_surface, [10, 10], start_stop, not is_running, [[0, 0], [0, 1], [1, 0.5]], colors=button_colors)
-    draw_button(window_surface, [45, 10], start_stop, is_running, [[0, 0], [0, 1], [1, 1], [1, 0]], colors=button_colors)
-    draw_button(window_surface, [80, 10], clear, not is_running and not about_to_clear, "CLEAR", colors=button_colors, font=small_text)
+    draw_button(
+        window_surface, [45, 10], start_stop, is_running, [[0, 0], [0, 1], [1, 1], [1, 0]], colors=button_colors
+    )
+    draw_button(
+        window_surface,
+        [80, 10],
+        clear,
+        not is_running and not about_to_clear,
+        "CLEAR",
+        colors=button_colors,
+        font=small_text,
+    )
 
     # draw the window onto the screen
     if show_prompt:
@@ -233,10 +251,10 @@ while True:
                         file_name = str(prompt_text[3:].strip())
                         file_name = file_name.replace(".h5", "").replace(".hdf", "")
                         np.savetxt(file_name, np.array(data), header="data")
-                        with h5py.File(file_name+".h5", 'w') as hf:
-                            hf.create_dataset("data",  data=np.array(data))
-                            hf.create_dataset("amplitudes",  data=np.array(amplitudes))
-                        prompt_text = "\""+file_name+"\".h5 written"
+                        with h5py.File(file_name + ".h5", "w") as hf:
+                            hf.create_dataset("data", data=np.array(data))
+                            hf.create_dataset("amplitudes", data=np.array(amplitudes))
+                        prompt_text = '"' + file_name + '".h5 written'
                         prompt_mode = False
                     elif prompt_text.strip() == ":set logscale":
                         logscale = not logscale
@@ -259,15 +277,14 @@ while True:
                 if event.key == pygame.K_l:
                     logscale = not logscale
                     window_surface.fill(WHITE)
-                    draw_hist(np.histogram(amplitudes, bins)[0],
-                              logscale=logscale)
+                    draw_hist(np.histogram(amplitudes, bins)[0], logscale=logscale)
                     if show_prompt:
                         draw_prompt(prompt_text)
                     pygame.display.update()
                 if event.key == pygame.K_SPACE:
                     start_stop()
 
-                if event.key == 59: # colon
+                if event.key == 59:  # colon
                     if not prompt_mode:
                         prompt_mode = True
                         prompt_text = ":"
@@ -287,6 +304,3 @@ while True:
                             pygame.display.update()
                         about_to_clear = True
                         about_to_clear_time = time.time()
-
-
-
