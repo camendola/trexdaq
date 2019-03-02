@@ -21,8 +21,8 @@ def digitize(y):
 
 while True:
     t = np.linspace(0, 10, 101)
-    a = 0.5 + np.random.exponential(scale=5.)
+    a = float(0.5 + np.random.exponential(scale=5.))
     y = pulse_shape(t, a=a)
-    y = digitize(y)
+    y = digitize(y)/10
     print("{0:.4f} ".format(a) + " ".join(["{0}".format(yi) for yi in y]))
     #time.sleep(1./rate)

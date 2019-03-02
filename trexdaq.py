@@ -32,7 +32,7 @@ def digitize(y):
 # set up pygame
 pygame.init()
 
-# set up the window
+# set up the main window
 window_width = 512
 window_height = 400
 window_surface = pygame.display.set_mode((window_width, window_height), 0, 32)
@@ -48,10 +48,12 @@ GREEN = (0, 255, 0)
 # BLUE = (0, 0, 255)
 # BLUE = (73, 114, 189)
 BLUE = (220, 220, 204)
+DBLUE = (0,62,97)
+LBLUE = (51,101,129)
 
 # set up fonts
 monospace_font = pygame.font.SysFont("DejaVu Sans Mono", 14)
-
+smallText = pygame.font.SysFont("DejaVu Sans Mono",10)
 
 # draw the white background onto the surface
 window_surface.fill(WHITE)
@@ -81,7 +83,7 @@ def draw_hist(bin_contents, logscale=False):
         max_content = np.log(max_content)
 
     w = window_width
-    h = window_height - 20
+    h = window_height - 10
 
     y_scale = float(h)/max_content
     x_scale = w/float(n+1)
@@ -100,6 +102,37 @@ def draw_hist(bin_contents, logscale=False):
 
     pygame.draw.polygon(window_surface, BLUE, points)
 
+def text_objects(text, font, color):
+    textSurface = font.render(text, True, color)
+    return textSurface, textSurface.get_rect()
+
+def draw_button(xpos, action, condition, text):
+    mouse = pygame.mouse.get_pos()
+    click = pygame.mouse.get_pressed()
+    if condition: 
+        # the button changes color when the mouse passes over it and makes an action if it gets clicked
+        if xpos+30 > mouse[0] > xpos and 10+30 > mouse[1] > 10:
+            pygame.draw.rect(window_surface, BLUE,(xpos,10,30,30))
+            textSurf, textRect = text_objects(text, smallText, DBLUE)
+            if click[0] == 1 and action != None:
+                action() 
+        else:
+            pygame.draw.rect(window_surface, DBLUE,(xpos,10,30,30))
+            textSurf, textRect = text_objects(text, smallText, BLUE)
+    else:
+        # if not condition, the button is inactive
+        pygame.draw.rect(window_surface, LBLUE,(xpos,10,30,30))
+        textSurf, textRect = text_objects(text, smallText, BLUE)
+            
+    textRect.center = ( (xpos+(30/2)), (10+(30/2)) )
+    window_surface.blit(textSurf, textRect)
+
+# define actions
+def start_stop():
+    global is_running
+    is_running = not is_running
+
+    
 # draw some blue lines onto the surface
 pygame.draw.line(window_surface, BLUE, (60, 60), (120, 60), 4)
 pygame.draw.line(window_surface, BLUE, (120, 60), (60, 120))
@@ -174,9 +207,13 @@ while True:
 
     if is_running:
         window_surface.fill(WHITE)
-
         draw_hist(np.histogram(amplitudes, bins)[0], logscale=logscale)
 
+
+    draw_button(10, start_stop, not is_running, "START")
+    draw_button(50, start_stop, is_running, "STOP")
+
+        
     # draw the window onto the screen
     if show_prompt:
         draw_prompt(prompt_text)
@@ -239,9 +276,8 @@ while True:
                     if show_prompt:
                         draw_prompt(prompt_text)
                     pygame.display.update()
-
                 if event.key == pygame.K_SPACE:
-                    is_running = not is_running
+                    start_stop()
 
                 if event.key == 59: # colon
                     if not prompt_mode:
@@ -263,3 +299,6 @@ while True:
                             pygame.display.update()
                         about_to_clear = True
                         about_to_clear_time = time.time()
+
+
+
