@@ -109,6 +109,28 @@ def draw_hist(bin_contents, logscale=False):
     pygame.draw.polygon(window_surface, BLUE, points)
 
 
+def draw_info():
+    pygame.draw.rect(window_surface, BLUE, (302, 40, 200, 100))
+    pygame.draw.rect(window_surface, DBLUE, (302, 40, 200, 100), 1)
+
+    commands = ["SPACE", "dd", "ll", 'type ":w <filename>"', 'type ":q"']
+    descriptions = ["start/stop", "clear", "log/normal scale", "save", "quit"]
+
+    xpos = 306
+    ypos = 44
+    for line, command in enumerate(commands):
+        text_surf = monospace_font.render(command, True, DBLUE)
+        text_rect = text_surf.get_rect()
+        text_rect.left = xpos
+        text_rect.top = ypos + line * 17
+        window_surface.blit(text_surf, text_rect)
+        text_surf = monospace_font.render(descriptions[line], True, BLACK)
+        text_rect = text_surf.get_rect()
+        text_rect.left = xpos + 100
+        text_rect.top = ypos + line * 17
+        window_surface.blit(text_surf, text_rect)
+
+
 button_colors = dict(inactive=(LBLUE, BLUE), active=(DBLUE, BLUE), hover=(BLUE, DBLUE))
 
 
@@ -124,6 +146,16 @@ def clear():
     amplitudes = []
     data = []
     window_surface.fill(WHITE)
+
+
+def log_norm():
+    global logscale
+    logscale = not logscale
+
+
+def toggle_info():
+    global show_info
+    show_info = not show_info
 
 
 # draw some blue lines onto the surface
@@ -154,6 +186,8 @@ is_running = False
 logscale = False
 show_prompt = True
 prompt_mode = False
+
+show_info = False
 
 prompt_text = ""
 
@@ -205,8 +239,8 @@ while True:
         draw_hist(np.histogram(amplitudes, bins)[0], logscale=logscale)
 
     # draw buttons
-
     draw_button(window_surface, [10, 10], start_stop, not is_running, [[0, 0], [0, 1], [1, 0.5]], colors=button_colors)
+
     draw_button(
         window_surface, [45, 10], start_stop, is_running, [[0, 0], [0, 1], [1, 1], [1, 0]], colors=button_colors
     )
@@ -220,9 +254,33 @@ while True:
         font=small_text,
     )
 
+    draw_button(
+        window_surface,
+        [115, 10],
+        log_norm,
+        is_running and len(amplitudes) > 0,
+        "LogA",
+        colors=button_colors,
+        font=small_text,
+    )
+
+    draw_button(
+        window_surface,
+        [472, 10],
+        toggle_info,
+        True,
+        "i",
+        colors=button_colors,
+        font=pygame.font.SysFont("Times New Roman", 14, bold=True, italic=True),
+    )
+
     # draw the window onto the screen
     if show_prompt:
         draw_prompt(prompt_text)
+    pygame.display.update()
+
+    if show_info:
+        draw_info()
     pygame.display.update()
 
     for event in pygame.event.get():
@@ -257,7 +315,7 @@ while True:
                         prompt_text = '"' + file_name + '".h5 written'
                         prompt_mode = False
                     elif prompt_text.strip() == ":set logscale":
-                        logscale = not logscale
+                        log_norm()
                         prompt_mode = False
                     elif prompt_text.strip() == ":q":
                         quitting = True
@@ -275,7 +333,7 @@ while True:
 
             else:
                 if event.key == pygame.K_l:
-                    logscale = not logscale
+                    log_norm()
                     window_surface.fill(WHITE)
                     draw_hist(np.histogram(amplitudes, bins)[0], logscale=logscale)
                     if show_prompt:
@@ -284,7 +342,7 @@ while True:
                 if event.key == pygame.K_SPACE:
                     start_stop()
 
-                if event.key == 59:  # colon
+                if event.key == pygame.K_COLON:
                     if not prompt_mode:
                         prompt_mode = True
                         prompt_text = ":"

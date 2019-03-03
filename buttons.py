@@ -3,6 +3,7 @@ import numpy as np
 
 
 def draw_button(surface, position, action, active, label, size=30, padding=10, colors={}, font=None):
+    global clicked
 
     xpos, ypos = position
 
@@ -16,11 +17,13 @@ def draw_button(surface, position, action, active, label, size=30, padding=10, c
         # the button changes color when the mouse passes over it and makes an action if it gets clicked
         if xpos + size > mouse[0] > xpos and ypos + size > mouse[1] > ypos:
             color, label_color = colors["hover"]
-            if click[0] == 1 and action != None:
+            if click[0] == 1 and action != None and not clicked:
                 action()
+                clicked = True
+            elif click[0] == 0:
+                clicked = False
         else:
             color, label_color = colors["active"]
-
     pygame.draw.rect(surface, color, (xpos, ypos, size, size))
 
     if isinstance(label, str):
